@@ -1,0 +1,25 @@
+{
+    "name": "heptagon-lang",
+    "displayName": "Heptagon Lang",
+    "description": "Syntax highlightings for heptagon",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "heptagon",
+            "aliases": ["Heptagon", "heptagon"],
+            "extensions": [".ept"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "heptagon",
+            "scopeName": "source.heptagon",
+            "path": "./syntaxes/heptagon.tmLanguage.json"
+        }]
+    }
+}
