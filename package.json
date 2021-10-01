@@ -20,6 +20,12 @@
             "language": "heptagon",
             "scopeName": "source.heptagon",
             "path": "./syntaxes/heptagon.tmLanguage.json"
-        }]
+        }],
+        "snippets": [
+            {
+                "language": "heptagon",
+                "path": "./snippets/heptagon.snippets.json"
+            }
+        ]
     }
 }

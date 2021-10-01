@@ -1,0 +1,21 @@
+{
+    "node" : {
+        "prefix" : ["node"],
+        "body" : ["node ${1:node_name}() returns ()\nlet\n\t$0\ntel"],
+        "description" : "Simple node"
+    },
+    "full_node" : {
+        "prefix" : ["node"],
+        "body" : ["node ${1:node_name}(${2:params : types}) returns (${3:outputs : types})\nlet\n\t$0\ntel"],
+        "description" : "Full node"
+    },
+    "let" : {
+        "prefix" : ["let"],
+        "body" : ["let\n\t$0\ntel"]
+    },
+    "var" : {
+        "prefix" : ["var"],
+        "body" : ["var ${1:var_names} : ${2:types};\n$0"],
+        "description" : "declare variable"
+    }
+}
