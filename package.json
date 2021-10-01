@@ -1,13 +1,14 @@
 {
     "name": "heptagon-lang",
     "displayName": "Heptagon Lang",
-    "description": "Syntax highlightings for heptagon",
+    "description": "Syntax highlightings and snippets for heptagon",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.60.0"
     },
     "categories": [
-        "Programming Languages"
+        "Programming Languages",
+        "Snippets"
     ],
     "contributes": {
         "languages": [{
