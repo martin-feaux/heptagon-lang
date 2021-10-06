@@ -41,7 +41,7 @@
 			"patterns": [
 				{
 					"comment" : "node a.k.a function",
-					"match": "\\b(node)[ \t]+([a-zA-Z][a-zA-Z0-9_]*)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)[ \t]*(returns)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)",
+					"match": "\\b(node|fun)[ \t]+([a-zA-Z][a-zA-Z0-9_]*)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)[ \t]*(returns)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)",
 					"captures": {
 						"1" : {"name" : "keyword.other.heptagon"},
 						"2" : {"name" : "entity.name.function.heptagon"},
@@ -59,7 +59,7 @@
 				{
 					"name": "keyword.other.heptagon",
 					"comment" : "other keyword",
-					"match": "\\b(node|returns|let|tel|type|var|contract|assume|enforce|merge|present|last|automaton|state|unless|do|end)\\b"
+					"match": "\\b(node|fun|returns|let|tel|type|var|contract|assume|enforce|merge|present|last|automaton|state|unless|do|end)\\b"
 				},
 				{
 					"name" : "keyword.control",
