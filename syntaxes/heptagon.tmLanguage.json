@@ -64,7 +64,7 @@
 				{
 					"name" : "keyword.control",
 					"comment" : "control keyword",
-					"match" : "\\b(if|then|else|map|mapi|fold|foldi|when|switch|pre|fby|->)\\b"
+					"match" : "\\b(if|then|else|map|mapi|fold|foldi|when|switch|pre|fby|reset|every|->)\\b"
 				}
 			]
 		},
