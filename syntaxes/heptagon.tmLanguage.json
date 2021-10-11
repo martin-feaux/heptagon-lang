@@ -3,6 +3,9 @@
 	"name": "Heptagon",
 	"patterns": [
 		{
+			"include": "#comment"
+		},
+		{
 			"include": "#punctuation"
 		},
 		{
@@ -28,6 +31,16 @@
 		}
 	],
 	"repository": {
+		"comment" : {
+			"patterns": [
+				{
+					"name" : "comment.block.heptagon",
+					"comment": "multi_line comment",
+					"begin": "\\(\\*",
+					"end" : "\\*\\)"
+				}
+			]
+		},
 		"punctuation" : {
 			"patterns": [
 				{
