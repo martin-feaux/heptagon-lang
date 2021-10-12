@@ -72,12 +72,12 @@
 				{
 					"name": "keyword.other.heptagon",
 					"comment" : "other keyword",
-					"match": "\\b(node|fun|returns|let|tel|type|var|contract|assume|enforce|merge|present|last|automaton|state|unless|do|end)\\b"
+					"match": "\\b(node|fun|returns|let|tel|type|var|contract|assume|enforce|present|last|automaton|state|unless|do|end)\\b"
 				},
 				{
 					"name" : "keyword.control",
 					"comment" : "control keyword",
-					"match" : "\\b(if|then|else|map|mapi|fold|foldi|when|switch|pre|fby|reset|every|->)\\b"
+					"match" : "\\b(if|then|else|map|mapi|fold|foldi|when|switch|pre|fby|reset|every|merge|->)\\b"
 				}
 			]
 		},

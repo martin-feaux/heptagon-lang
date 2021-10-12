@@ -15,7 +15,7 @@
     },
     "var" : {
         "prefix" : ["var"],
-        "body" : ["var ${1:var_names} : ${2:types};\n$0"],
+        "body" : ["var ${1:var_names} : ${2:types};"],
         "description" : "declare variable"
     },
     "reset" : {
@@ -27,5 +27,9 @@
         "prefix" : ["if"],
         "body" : ["if ${1:e1} then ${2:e2} else ${3:e3};"],
         "description" : ["if then else"]
+    },
+    "merge" : {
+        "prefix" : ["merge"],
+        "body" : ["merge ${1:condition} ${2:value_true} ${3:value_false};"]
     }
 }
