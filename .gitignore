@@ -1,3 +1,6 @@
 node_modules
 *.vsix
 .vscode
+.eslintrc.json
+node_modules
+out
