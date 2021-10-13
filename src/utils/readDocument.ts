@@ -1,5 +1,20 @@
-import { match } from 'assert';
 import * as vscode from 'vscode';
+
+//match comment (not multiline)
+const regexComment = new RegExp('\\(\\*.*\\*\\)'); 
+//match seperation between variable name
+const regexSeperation = new RegExp('[ \t,]'); 
+//match any possible name for variable
+const regexName = new RegExp('[a-zA-Z0-9_]+'); 
+//match any declaration of a variables with their types (in node or behind var)
+const regexVarType = new RegExp('(' + regexName.source + '|' + regexSeperation.source + '*)*:[ \t]*' + regexName.source + ';?');
+//match zero or more regexVarType between parantheses
+const regexVarTypePar = new RegExp('\\((' + regexVarType.source + ')*\\)');
+//match any node
+const regexNode = new RegExp('(node|fun)[ \t]+' + regexName.source + regexVarTypePar.source + '[ \t]*returns[ \t]*' + regexVarTypePar.source);
+//match any declaration of var
+const regexVar = new RegExp('var[ \t]*(' + regexVarType.source + ')*'); 
+
 
 export function parseMultiLine(document : vscode.TextDocument, position1 : vscode.Position, position2 : vscode.Position) : string{
     let text = "";
@@ -109,3 +124,11 @@ export function parseFunction(document : vscode.TextDocument, position : vscode.
 
     return [];
 }
+
+/*
+export function findDefPos(name : string, document : vscode.TextDocument, position : vscode.Position) : vscode.Range {
+
+
+    return new vscode.Range();
+}
+*/

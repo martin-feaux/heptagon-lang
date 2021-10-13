@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { parseFunction } from './utils/readDocument';
 import { HeptagonSignatureProvider } from './signature';
+import { HeptagonHoverProvider } from './hover';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {	
@@ -10,11 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "heptagon" is now active!');
 
-	let hover = vscode.languages.registerHoverProvider('heptagon', {
-		provideHover(document, position, token) {
-		  return new vscode.Hover('I am a hover!');
-		}
-	  });
+	let hover = vscode.languages.registerHoverProvider('heptagon', new HeptagonHoverProvider());
 
 	let signature = vscode.languages.registerSignatureHelpProvider('heptagon', new HeptagonSignatureProvider(), '(');
 
