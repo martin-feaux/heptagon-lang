@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { parseFunction, parseMultiLine } from './utils/readDocument';
+import { DocumentDefinition, ReprFunction } from './utils/readDocument';
 
 
 class HeptagonInformation implements vscode.SignatureInformation {
@@ -9,21 +9,15 @@ class HeptagonInformation implements vscode.SignatureInformation {
     parameters: vscode.ParameterInformation[];
     activeParameter?: number | undefined;
 
-    constructor(document : vscode.TextDocument, position : vscode.Position){
+    constructor(funcDef : ReprFunction, position : vscode.Position){
         this.startPos = position;
         this.parameters = [];
 
-        let parsedFunc = parseFunction(document, position);
+        this.label = funcDef.label;
 
-        if(parsedFunc.length > 0){
-            this.label = parsedFunc[0];
-
-            for(let i = 1; i < parsedFunc.length; i++){
-                this.addParameter(parsedFunc[i]);
-            }
-        }else{
-            throw new Error("couldn't be parse");
-        }
+        funcDef.parameters.forEach(parameter => {
+            this.addParameter(parameter);
+        });
     }
 
     addParameter(parameter : string){
@@ -31,7 +25,7 @@ class HeptagonInformation implements vscode.SignatureInformation {
     }
 
     updateActiveParameter(document : vscode.TextDocument, position : vscode.Position){
-        let parse = parseMultiLine(document, this.startPos, position);
+        let parse = document.getText(new vscode.Range(this.startPos, position));
         this.activeParameter = (parse.match(/,/g) || []).length;
     }
 
@@ -41,9 +35,11 @@ class HeptagonInformation implements vscode.SignatureInformation {
 }
 
 export class HeptagonSignatureProvider implements vscode.SignatureHelpProvider{
+    mapDoc : Map<string, DocumentDefinition>;
     nodeSignature : Map<string, HeptagonInformation>;
 
-    constructor(){
+    constructor(mapDoc : Map<string, DocumentDefinition>){
+        this.mapDoc = mapDoc;
         this.nodeSignature = new Map();
     }
 
@@ -113,9 +109,13 @@ export class HeptagonSignatureProvider implements vscode.SignatureHelpProvider{
             //opening new method signature, if none fund then there was no methode open
             let signInfo;
             try{
-                signInfo = new HeptagonInformation(document, position);
-                this.nodeSignature.set(name, signInfo);
+                let docDef = this.mapDoc.get(document.fileName);
+                if(docDef){
+                    signInfo = new HeptagonInformation(docDef.getFunctionRepr(name), position);
+                    this.nodeSignature.set(name, signInfo);
+                }
             }catch(e){
+                console.log(e);
                 //was not initialize
             }
         }
