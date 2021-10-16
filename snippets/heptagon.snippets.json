@@ -31,5 +31,9 @@
     "merge" : {
         "prefix" : ["merge"],
         "body" : ["merge ${1:condition} ${2:value_true} ${3:value_false};"]
+    },
+    "automaton" : {
+        "prefix" : ["automaton"],
+        "body" : ["automaton\n\tstate ${1:STATE}\n\t\t$0\nend"]
     }
 }
