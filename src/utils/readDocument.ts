@@ -29,6 +29,11 @@ type Variable = {
     type : string;
 };
 
+export type ReprFunction = {
+    label : string;
+    parameters : string[];
+};
+
 class VariableDefinition {
     variables : Variable[];
     range : vscode.Range;
@@ -36,6 +41,52 @@ class VariableDefinition {
     constructor(variables : Variable[], range : vscode.Range){
         this.variables = variables;
         this.range = range;
+    }
+
+    toType() : string {
+        let repr = "";
+
+        this.variables.forEach(variable => {
+            repr += variable.type + " -> ";
+        });
+
+        if(repr){
+            return repr.substring(0, repr.length - 4);
+        }
+        return repr;
+    }
+
+    hasVar(name : string) : boolean {
+        this.variables.forEach(variable => {
+            if(variable.name === name){
+                return true;
+            }
+        });
+        
+        return false;
+    }
+
+    toString() : string {
+        let repr = "";
+
+        this.variables.forEach(variable => {
+            repr += variable.name + " : " + variable.type + ", ";
+        });
+
+        if(repr){
+            return repr.substring(0, repr.length - 2);
+        }
+        return repr;
+    }
+
+    getVarString() : string[] {
+        let vars : string[] = [];
+
+        this.variables.forEach(variable => {
+            vars.push(variable.name + " : " + variable.type);
+        });
+
+        return vars;
     }
 }
 
@@ -53,6 +104,14 @@ class FunctionDefinition {
         this.localVar = localVar;
         this.range = range;
     }
+
+    toType() : string {
+        return "(" + this.parameters.toType() + ") -> (" + this.outputs.toType() + ")";
+    }
+
+    toString() : string {
+        return this.name + "(" + this.parameters.toString() + ") -> (" + this.outputs.toType() + ")";
+    }
 }
 
 export class DocumentDefinition {
@@ -64,6 +123,67 @@ export class DocumentDefinition {
         this.name = name;
         this.functions = functions;
         this.constVar = constVar;
+    }
+
+    update(document : vscode.TextDocument, changes : readonly vscode.TextDocumentContentChangeEvent[]){
+        changes.forEach(change => {
+            let start = change.range.start;
+            let end = change.range.end;
+            let regexReturn = new RegExp('\n', 'g');
+            let lineChange = (end.line - start.line) + (change.text.match(regexReturn) || []).length;
+            let lowBoundary = new vscode.Position(0, 0);
+            let endChar = document.lineAt(document.lineCount - 1).range.end.character;
+            let highBoundary = new vscode.Position(document.lineCount - 1, endChar);
+
+            for(let i = 0; i < this.functions.length; i++){
+                let funcDef = this.functions[i];
+                if(funcDef.range.start.line > end.line){
+                    let newStart = new vscode.Position(funcDef.range.start.line + lineChange, funcDef.range.start.character);
+                    let newEnd = new vscode.Position(funcDef.range.end.line + lineChange, funcDef.range.end.character);
+                    funcDef.range = new vscode.Range(newStart, newEnd);
+
+                    if(newStart.line < highBoundary.line){
+                        highBoundary = newStart;
+                    }
+                }else if(funcDef.range.end.line < start.line){
+                    if(funcDef.range.end.line > lowBoundary.line){
+                        lowBoundary = funcDef.range.end;
+                    }
+                }else{
+                    //we can't know exactly what happends so we will recalculate the function
+                    this.functions.splice(i);
+                    i--;
+                }
+            }
+
+            let currLine = lowBoundary.line;
+            while(currLine < highBoundary.line){
+                let text = document.lineAt(currLine).text;
+
+                if(text.match(regexBeginFunc)){
+                    let tmp = functionFactory(document, new vscode.Position(currLine, 0));
+                    if(tmp){
+                        this.functions.push(tmp);
+
+                        currLine = tmp.range.end.line;
+                    }
+                }
+                currLine++;
+            }
+        });
+    }
+
+    getFunctionRepr(name : string) : ReprFunction{
+        let repr : ReprFunction = {label : "", parameters : []};
+
+        this.functions.forEach(funcDef => {
+            if(funcDef.name === name){
+                repr.label = funcDef.toString();
+                repr.parameters = funcDef.parameters.getVarString();
+            }
+        });
+
+        return repr;
     }
 }
 
