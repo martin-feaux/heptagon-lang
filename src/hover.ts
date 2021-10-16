@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { parseFunction, parseMultiLine } from './utils/readDocument';
+import { } from './utils/readDocument';
 
 export class HeptagonHoverProvider implements vscode.HoverProvider {
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {

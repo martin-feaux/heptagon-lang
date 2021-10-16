@@ -15,6 +15,10 @@ class HeptagonInformation implements vscode.SignatureInformation {
 
         this.label = funcDef.label;
 
+        if(!this.label){
+            throw new Error("Error! couldn't be parsed");
+        }
+
         funcDef.parameters.forEach(parameter => {
             this.addParameter(parameter);
         });
@@ -115,7 +119,7 @@ export class HeptagonSignatureProvider implements vscode.SignatureHelpProvider{
                     this.nodeSignature.set(name, signInfo);
                 }
             }catch(e){
-                console.log(e);
+                //console.log(e);
                 //was not initialize
             }
         }

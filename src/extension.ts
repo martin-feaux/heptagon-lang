@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { parseFunction, documentFactory, DocumentDefinition } from './utils/readDocument';
+import { documentFactory, DocumentDefinition } from './utils/readDocument';
 import { HeptagonSignatureProvider } from './signature';
 import { HeptagonHoverProvider } from './hover';
 // this method is called when your extension is activated
@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(openDoc);
 	context.subscriptions.push(closeDoc);
 	context.subscriptions.push(docChange);
-	
+
 	context.subscriptions.push(hover);
 	context.subscriptions.push(signature);
 }
