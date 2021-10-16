@@ -1,3 +1,4 @@
+import { start } from 'repl';
 import * as vscode from 'vscode';
 
 //match comment (not multiline)
@@ -57,23 +58,27 @@ class VariableDefinition {
     }
 
     hasVar(name : string) : boolean {
+        let exist = false;
+
         this.variables.forEach(variable => {
             if(variable.name === name){
-                return true;
+                exist = true;
             }
         });
         
-        return false;
+        return exist;
     }
 
     getVarType(name : string) : string {
+        let type = "";
+
         this.variables.forEach(variable => {
             if(variable.name === name){
-                return variable.type;
+                type = variable.type;
             }
         });
 
-        return "";
+        return type;
     }
 
     toString() : string {
@@ -121,6 +126,31 @@ class FunctionDefinition {
 
     toString() : string {
         return this.name + "(" + this.parameters.toString() + ") -> (" + this.outputs.toType() + ")";
+    }
+
+    hasVar(name : string) : boolean {
+        return this.parameters.hasVar(name) || this.outputs.hasVar(name) || (this.localVar !== null && this.localVar.hasVar(name));
+    }
+
+    getVarType(name : string) : string {
+        if(this.parameters.hasVar(name)){
+            return this.parameters.getVarType(name);
+        }else if(this.outputs.hasVar(name)){
+            return this.outputs.getVarType(name);
+        }else if(this.localVar && this.localVar.hasVar(name)){
+            return this.localVar.getVarType(name);
+        }
+
+        return "";
+    }
+
+    isIn(position : vscode.Position) : boolean {
+        let aboveStart = position.line > this.range.start.line || 
+            (position.line === this.range.start.line && position.character >= this.range.start.character);
+        let underEnd = position.line < this.range.end.line || 
+            (position.line === this.range.end.line && position.character <= this.range.end.character);
+
+        return aboveStart && underEnd;
     }
 }
 
@@ -194,6 +224,34 @@ export class DocumentDefinition {
         });
 
         return repr;
+    }
+
+    getTypeAny(name : string, position : vscode.Position) : string {
+        let type = "";
+
+        //search first if its a function
+        this.functions.forEach(funcDef => {
+            if(funcDef.name === name){
+                type = funcDef.toType();
+            }
+        });
+
+        if(type){
+            return type;
+        }
+
+        //search if its a local var
+        this.functions.forEach(funcDef => {
+            if(funcDef.isIn(position) && funcDef.hasVar(name)){
+                type = funcDef.getVarType(name);
+            }
+        });
+
+        if(type){
+            return type;
+        }
+
+        return "";
     }
 }
 

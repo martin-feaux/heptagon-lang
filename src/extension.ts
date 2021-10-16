@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 		mapDocument.delete(document.fileName);
 	});
 
-	let hover = vscode.languages.registerHoverProvider('heptagon', new HeptagonHoverProvider());
+	let hover = vscode.languages.registerHoverProvider('heptagon', new HeptagonHoverProvider(mapDocument));
 
 	let signature = vscode.languages.registerSignatureHelpProvider('heptagon', new HeptagonSignatureProvider(mapDocument), '(');
 
