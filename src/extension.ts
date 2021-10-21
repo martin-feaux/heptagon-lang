@@ -4,6 +4,8 @@ import * as vscode from 'vscode';
 import { documentFactory, DocumentDefinition } from './utils/readDocument';
 import { HeptagonSignatureProvider } from './signature';
 import { HeptagonHoverProvider } from './hover';
+import { HeptagonCodeLensProvider } from './codeLens';
+import { HeptagonTerminalManager } from './HeptagonTerminalManager';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {	
@@ -38,12 +40,29 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let signature = vscode.languages.registerSignatureHelpProvider('heptagon', new HeptagonSignatureProvider(mapDocument), '(');
 
+	let codeLens = vscode.languages.registerCodeLensProvider('heptagon', new HeptagonCodeLensProvider(mapDocument));
+
+	let heptagonTerminalManager = new HeptagonTerminalManager();
+
+	let compile = vscode.commands.registerCommand('heptagon.compile', () => {
+		heptagonTerminalManager.compile(false);
+	});
+
+	let run = vscode.commands.registerCommand('run', (node : string) => {
+		heptagonTerminalManager.run(node);
+	});
+
 	context.subscriptions.push(openDoc);
 	context.subscriptions.push(closeDoc);
 	context.subscriptions.push(docChange);
 
 	context.subscriptions.push(hover);
 	context.subscriptions.push(signature);
+	context.subscriptions.push(codeLens);
+
+	context.subscriptions.push(compile);
+	context.subscriptions.push(run);
+	context.subscriptions.push(heptagonTerminalManager);
 }
 
 // this method is called when your extension is deactivated
