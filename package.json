@@ -16,6 +16,9 @@
     ],
     "main": "./out/extension.js",
     "capabilities": {
+        "codeLensProvider" : {
+            "resolveProvider": "true"
+        },
         "signatureHelpProvider": {
             "triggerCharacters": [
                 "("
@@ -36,6 +39,12 @@
                 "configuration": "./language-configuration.json"
             }
         ],
+        "commands" : [
+            {
+                "title" : "compile",
+                "command": "heptagon.compile"
+            }
+        ],
         "grammars": [
             {
                 "language": "heptagon",
@@ -48,7 +57,57 @@
                 "language": "heptagon",
                 "path": "./snippets/heptagon.snippets.json"
             }
-        ]
+        ],
+        "configuration" : {
+            "type" : "object",
+            "properties" : {
+                "heptagon.targetLanguage" : {
+                    "type" : "string",
+                    "default" : "c",
+                    "description" : "language to which heptagon should be compiled"
+                },
+                "heptagon.verboseCompiling" : {
+                    "type" : "boolean",
+                    "default" : false,
+                    "description" : "should the compiling be verbose?"
+                },
+                "heptagon.cleanTerminal" : {
+                    "type" : "boolean",
+                    "default" : true,
+                    "description" : "clean the terminal before any new command?"
+                },
+                "heptagon.autoSave" : {
+                    "type" : "boolean",
+                    "default": false,
+                    "description": "save before compiling"
+                },
+                "heptagon.outputDir" : {
+                    "type" : "string",
+                    "default" : "",
+                    "description" : "if left empty the location is the workspace folder (or is tmpDir if run)"
+                },
+                "heptagon.supplementaryOptions" : {
+                    "type" : "string",
+                    "default" : "",
+                    "description" : "Add any options for heptc"
+                },
+                "heptagon.compilerHeptc" : {
+                    "type" : "string",
+                    "default" : "heptc",
+                    "description" : "call heptc compiler"
+                },
+                "heptagon.compilerC" : {
+                    "type" : "string",
+                    "default" : "gcc -I `heptc -where`/c -c *.c",
+                    "description": "call to c compiler"
+                },
+                "heptagon.compilerJava" : {
+                    "type" : "string",
+                    "default" : "",
+                    "description": "call to java compiler"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
