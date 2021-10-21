@@ -9,6 +9,9 @@
 			"include": "#punctuation"
 		},
 		{
+			"include": "#keywords"
+		},
+		{
 			"include": "#node"
 		},
 		{
@@ -22,9 +25,6 @@
 		},
 		{
 			"include": "#constants"
-		},
-		{
-			"include": "#keywords"
 		},
 		{
 			"include": "#variables"
@@ -50,23 +50,6 @@
 				}
 			]
 		},
-		"node" : {
-			"patterns": [
-				{
-					"comment" : "node a.k.a function",
-					"match": "\\b(node|fun)[ \t]+([a-zA-Z][a-zA-Z0-9_]*)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)[ \t]*(returns)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)",
-					"captures": {
-						"1" : {"name" : "keyword.other.heptagon"},
-						"2" : {"name" : "entity.name.function.heptagon"},
-						"3" : {"name" : "variable.paramater.heptagon"},
-						"5" : {"name" : "storage.type.heptagon"},
-						"6" : {"name" : "keyword.other.heptagon"},
-						"7" : {"name" : "variable.parameter.heptagon"},
-						"9" : {"name" : "storage.type.heptagon"}
-					}
-				}
-			]
-		},
 		"keywords": {
 			"patterns": [
 				{
@@ -78,6 +61,23 @@
 					"name" : "keyword.control",
 					"comment" : "control keyword",
 					"match" : "\\b(if|then|else|map|mapi|fold|foldi|when|whenot|switch|pre|fby|reset|every|merge|->)\\b"
+				}
+			]
+		},
+		"node" : {
+			"patterns": [
+				{
+					"comment" : "node a.k.a function",
+					"match": "\\b(node|fun)[ \t]+([a-zA-Z][a-zA-Z0-9_]*)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_]*))*\\)[ \t]*(returns)[ \t]*\\((([a-z][a-zA-Z0-9_]*|[ \t]*|,)*[ \t]*:[ \t]*([a-z][a-zA-Z0-9_=]*))*\\)",
+					"captures": {
+						"1" : {"name" : "keyword.other.heptagon"},
+						"2" : {"name" : "entity.name.function.heptagon"},
+						"3" : {"name" : "variable.paramater.heptagon"},
+						"5" : {"name" : "storage.type.heptagon"},
+						"6" : {"name" : "keyword.other.heptagon"},
+						"7" : {"name" : "variable.parameter.heptagon"},
+						"9" : {"name" : "storage.type.heptagon"}
+					}
 				}
 			]
 		},
@@ -136,7 +136,7 @@
 			"patterns": [
 				{
 					"comment" : "call to node",
-					"begin" : "([a-z][a-zA-Z0-9_]*)[ \t]*\\(",
+					"begin" : "([a-zA-Z0-9_]+)[ \t]*\\(",
 					"end" : "\\)",
 					"patterns": [
 						{"include": "$self"}
@@ -148,7 +148,7 @@
 				{
 					"name" : "variable.other.heptagon",
 					"comment": "variable name",
-					"match" : "[a-z][a-zA-Z0-9_]*"
+					"match" : "[a-zA-Z0-9_]+"
 				}
 			]
 		}
