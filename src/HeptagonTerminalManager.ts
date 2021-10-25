@@ -95,7 +95,7 @@ export class HeptagonTerminalManager implements vscode.Disposable {
             }
         }else if(temporary){
             this.outputDir = vscode.Uri.joinPath(vscode.Uri.parse(tmp), "heptagon-compil-result");
-            spawnSync('test ! -d ' + this.outputDir.fsPath + ' && mkdir ' + this.outputDir.fsPath);
+            let t= spawnSync('test ! -d ' + this.outputDir.fsPath + ' && mkdir ' + this.outputDir.fsPath, {shell : true});
             command += " -targetpath " + this.outputDir.fsPath;
             this.outputDir = vscode.Uri.joinPath(this.outputDir, fileName);
         }else{
