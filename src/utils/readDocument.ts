@@ -377,6 +377,7 @@ function functionFactory(document : vscode.TextDocument, startPos : vscode.Posit
                 }
             }else if(word.match('^tel$')){
                 isEnd = true;
+                endLine--; //because line will be incremented one more time
             }
 
             currChar = endChar;
