@@ -18,6 +18,7 @@ export class HeptagonCodeLensProvider implements vscode.CodeLensProvider {
         if(docDef){
             docDef.functions.forEach(funcDef => {
                 lens.push(new vscode.CodeLens(funcDef.range, {title : 'run', command : 'run', arguments : [funcDef.name]}));
+                lens.push(new vscode.CodeLens(funcDef.range, {title : 'debug', command : 'debug', arguments : [funcDef.name, docDef]}));
             });
         }
 

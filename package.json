@@ -11,12 +11,11 @@
         "Snippets"
     ],
     "activationEvents": [
-        "onCommand:test.helloWorld",
         "onLanguage:heptagon"
     ],
     "main": "./out/extension.js",
     "capabilities": {
-        "codeLensProvider" : {
+        "codeLensProvider": {
             "resolveProvider": "true"
         },
         "signatureHelpProvider": {
@@ -39,9 +38,9 @@
                 "configuration": "./language-configuration.json"
             }
         ],
-        "commands" : [
+        "commands": [
             {
-                "title" : "compile",
+                "title": "compile",
                 "command": "heptagon.compile"
             }
         ],
@@ -58,52 +57,57 @@
                 "path": "./snippets/heptagon.snippets.json"
             }
         ],
-        "configuration" : {
-            "type" : "object",
-            "properties" : {
-                "heptagon.targetLanguage" : {
-                    "type" : "string",
-                    "default" : "c",
-                    "description" : "language to which heptagon should be compiled"
+        "configuration": {
+            "type": "object",
+            "properties": {
+                "heptagon.targetLanguage": {
+                    "type": "string",
+                    "default": "c",
+                    "description": "language to which heptagon should be compiled"
                 },
-                "heptagon.verboseCompiling" : {
-                    "type" : "boolean",
-                    "default" : false,
-                    "description" : "should the compiling be verbose?"
+                "heptagon.verboseCompiling": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "should the compiling be verbose?"
                 },
-                "heptagon.cleanTerminal" : {
-                    "type" : "boolean",
-                    "default" : true,
-                    "description" : "clean the terminal before any new command?"
+                "heptagon.cleanTerminal": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "clean the terminal before any new command?"
                 },
-                "heptagon.autoSave" : {
-                    "type" : "boolean",
+                "heptagon.autoSave": {
+                    "type": "boolean",
                     "default": false,
                     "description": "save before compiling"
                 },
-                "heptagon.outputDir" : {
-                    "type" : "string",
-                    "default" : "",
-                    "description" : "if left empty the location is the workspace folder (or is tmpDir if run)"
+                "heptagon.outputDir": {
+                    "type": "string",
+                    "default": "",
+                    "description": "if left empty the location is the workspace folder (or is tmpDir if run)"
                 },
-                "heptagon.supplementaryOptions" : {
-                    "type" : "string",
-                    "default" : "",
-                    "description" : "Add any options for heptc"
+                "heptagon.debugDir": {
+                    "type": "string",
+                    "default": "",
+                    "description": "if left empty the location is tmpDir"
                 },
-                "heptagon.compilerHeptc" : {
-                    "type" : "string",
-                    "default" : "heptc",
-                    "description" : "call heptc compiler"
+                "heptagon.supplementaryOptions": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Add any options for heptc"
                 },
-                "heptagon.compilerC" : {
-                    "type" : "string",
-                    "default" : "gcc -I `heptc -where`/c -c *.c",
+                "heptagon.compilerHeptc": {
+                    "type": "string",
+                    "default": "heptc",
+                    "description": "call heptc compiler"
+                },
+                "heptagon.compilerC": {
+                    "type": "string",
+                    "default": "gcc -I `heptc -where`/c -c *.c",
                     "description": "call to c compiler"
                 },
-                "heptagon.compilerJava" : {
-                    "type" : "string",
-                    "default" : "",
+                "heptagon.compilerJava": {
+                    "type": "string",
+                    "default": "",
                     "description": "call to java compiler"
                 }
             }
@@ -129,5 +133,9 @@
         "mocha": "^9.1.1",
         "typescript": "^4.4.3",
         "@vscode/test-electron": "^1.6.2"
+    },
+    "dependencies": {
+        "await-notify": "^1.0.1",
+        "regenerator-runtime": "^0.13.9"
     }
 }

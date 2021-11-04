@@ -45,11 +45,15 @@ export function activate(context: vscode.ExtensionContext) {
 	let heptagonTerminalManager = new HeptagonTerminalManager();
 
 	let compile = vscode.commands.registerCommand('heptagon.compile', () => {
-		heptagonTerminalManager.compile(false);
+		heptagonTerminalManager.compile(false, false);
 	});
 
 	let run = vscode.commands.registerCommand('run', (node : string) => {
 		heptagonTerminalManager.run(node);
+	});
+
+	let debug = vscode.commands.registerCommand('debug', (node, eptProgramme) => {
+		heptagonTerminalManager.debug(node, eptProgramme);
 	});
 
 	context.subscriptions.push(openDoc);

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as os from 'os';
-import { execSync, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
+import { DocumentDefinition } from './utils/readDocument';
 
 const tmp = os.tmpdir();
 
@@ -56,7 +57,7 @@ export class HeptagonTerminalManager implements vscode.Disposable {
         this.terminal.show();
     }
 
-    compile(temporary : boolean, node? : string) : boolean{
+    compile(temporary : boolean, debug : boolean, node? : string) : boolean{
         this.initialize();
 
         if(!this.document || this.document.languageId !== 'heptagon'){
@@ -135,17 +136,28 @@ export class HeptagonTerminalManager implements vscode.Disposable {
         }
 
         if(isLanguageC){
-            return this.compileC(node);
+            return this.compileC(debug, node);
         }
         
         return true;
     }
 
-    compileC(node? : string) : boolean{
+    compileC(debug : boolean, node? : string) : boolean{
         let command : string = "";
         let tmpCommand = this.config.get<string>('compilerC');
         if(tmpCommand){
             command = tmpCommand;
+        }
+
+        if(debug){
+            //insert -g as first argument
+            let tmp = command.split(' ');
+
+            command = tmp[0] + ' -g ';
+            for (let i = 1; i < tmp.length; i++) {
+                command += " " + tmp[i];
+                
+            }
         }
 
         let compileResult = spawnSync(command, {shell : true, encoding : "utf-8", cwd : this.outputDir.fsPath});
@@ -194,7 +206,7 @@ export class HeptagonTerminalManager implements vscode.Disposable {
             return;
         }
 
-        let compiled = this.compile(true, node);
+        let compiled = this.compile(true, false, node);
 
         if(compiled){
             this.initTerminal();
@@ -213,6 +225,37 @@ export class HeptagonTerminalManager implements vscode.Disposable {
             }
 
             if(this.terminal){
+                this.terminal.sendText(commandLoc);
+                this.terminal.sendText(command);
+            }
+        }
+    }
+
+    debug(node : string, eptProgramme : DocumentDefinition){
+        if(node === ""){
+            return;
+        }
+
+        let compiled = this.compile(true, true, node);
+
+        if(compiled){
+            this.initTerminal();
+
+            if(!this.terminal){
+                vscode.window.showInformationMessage('Terminal did not open');
+                return false;
+            }
+
+            let isLanguageC = this.config.get<string>('targetLanguage') === 'c';
+            let commandLoc = "cd " + this.outputDir.fsPath;
+            let command = "";
+
+            if(isLanguageC){
+                command = "gdb " + node;
+            }
+
+            if(this.terminal){
+                vscode.window.showInformationMessage("To add a breakpoint on function, use break Filename__nodename_step");
                 this.terminal.sendText(commandLoc);
                 this.terminal.sendText(command);
             }
