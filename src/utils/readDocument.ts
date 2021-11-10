@@ -260,6 +260,28 @@ export class DocumentDefinition {
                 }
             }
 
+            for(let i = 0; i < this.types.length; i++){
+                let typeDef = this.types[i];
+
+                if(typeDef.range.start.line > end.line){
+                    let newStart = new vscode.Position(typeDef.range.start.line + lineChange, typeDef.range.start.character);
+                    let newEnd = new vscode.Position(typeDef.range.end.line + lineChange, typeDef.range.end.character);
+                    typeDef.range = new vscode.Range(newStart, newEnd);
+
+                    if(newStart.line < highBoundary.line){
+                        highBoundary = newStart;
+                    }
+                }else if(typeDef.range.end.line < start.line){
+                    if(typeDef.range.end.line > lowBoundary.line){
+                        lowBoundary = typeDef.range.end;
+                    }
+                }else{
+                    //we can't know exactly what happends so we will recalculate the function
+                    this.types.splice(i);
+                    i--;
+                }
+            }
+
             let currLine = lowBoundary.line;
             while(currLine < highBoundary.line){
                 let text = document.lineAt(currLine).text;
@@ -272,7 +294,13 @@ export class DocumentDefinition {
                         currLine = tmp.range.end.line;
                     }
                 }else if(text.match(regexBeginVar)){
-                    this.constVar.push(variableDefinitionFactory(document, document.lineAt(currLine).range));
+                    let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
+                    this.constVar.push(variableDefinitionFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
+                    currLine = endPos.line;
+                }else if(text.match(regexBeginType)){
+                    let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
+                    this.types.push(typeFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
+                    currLine = endPos.line;
                 }
                 currLine++;
             }
