@@ -11,6 +11,8 @@ const regexSeperation = new RegExp('[ \t,]', 'g');
 const regexBeginFunc = new RegExp('(node|fun)', 'g');
 //match begin var
 const regexBeginVar = new RegExp('(var|const)', 'g');
+//match being type
+const regexBeginType = new RegExp('type', 'g');
 //match any possible name for variable
 const regexName = new RegExp('[a-zA-Z0-9_]+', 'g'); 
 //match only possible name
@@ -28,12 +30,40 @@ const regexVar = new RegExp('var[ \t]*(' + regexVarType.source + ')*', 'g');
 type Variable = {
     name : string;
     type : string;
+    arrays? : string[];
+    defaultValue?: string;
 };
 
 export type ReprFunction = {
     label : string;
     parameters : string[];
 };
+
+function varTypeString(variable : Variable) : string{
+    let type = "";
+
+    if(typeof(variable.type) === "string"){
+        type = variable.type;
+    }
+
+    return type;
+}
+
+class TypeDefinition {
+    name : string;
+    type : string;
+    range : vscode.Range;
+
+    constructor(name : string, type : string, range : vscode.Range){
+        this.name = name;
+        this.type = type;
+        this.range = range;
+    }
+
+    toType() : string {
+        return this.type;
+    }
+}
 
 class VariableDefinition {
     variables : Variable[];
@@ -74,7 +104,17 @@ class VariableDefinition {
 
         this.variables.forEach(variable => {
             if(variable.name === name){
-                type = variable.type;
+                type = varTypeString(variable);
+
+                if(variable.arrays){
+                    variable.arrays.forEach(arg => {
+                        type += "[" + arg + "]";
+                    });
+                }
+
+                if(variable.defaultValue){
+                    type += " = " + variable.defaultValue;
+                }
             }
         });
 
@@ -158,11 +198,13 @@ export class DocumentDefinition {
     name : string;
     functions : FunctionDefinition[];
     constVar : VariableDefinition[];
+    types : TypeDefinition[];
 
-    constructor(name : string, functions : FunctionDefinition[], constVar : VariableDefinition[]){
+    constructor(name : string, functions : FunctionDefinition[], constVar : VariableDefinition[], types : TypeDefinition[]){
         this.name = name;
         this.functions = functions;
         this.constVar = constVar;
+        this.types = types;
     }
 
     update(document : vscode.TextDocument, changes : readonly vscode.TextDocumentContentChangeEvent[]){
@@ -196,6 +238,28 @@ export class DocumentDefinition {
                 }
             }
 
+            for(let i = 0; i < this.constVar.length; i++){
+                let varDef = this.constVar[i];
+
+                if(varDef.range.start.line > end.line){
+                    let newStart = new vscode.Position(varDef.range.start.line + lineChange, varDef.range.start.character);
+                    let newEnd = new vscode.Position(varDef.range.end.line + lineChange, varDef.range.end.character);
+                    varDef.range = new vscode.Range(newStart, newEnd);
+
+                    if(newStart.line < highBoundary.line){
+                        highBoundary = newStart;
+                    }
+                }else if(varDef.range.end.line < start.line){
+                    if(varDef.range.end.line > lowBoundary.line){
+                        lowBoundary = varDef.range.end;
+                    }
+                }else{
+                    //we can't know exactly what happends so we will recalculate the function
+                    this.constVar.splice(i);
+                    i--;
+                }
+            }
+
             let currLine = lowBoundary.line;
             while(currLine < highBoundary.line){
                 let text = document.lineAt(currLine).text;
@@ -207,6 +271,8 @@ export class DocumentDefinition {
 
                         currLine = tmp.range.end.line;
                     }
+                }else if(text.match(regexBeginVar)){
+                    this.constVar.push(variableDefinitionFactory(document, document.lineAt(currLine).range));
                 }
                 currLine++;
             }
@@ -251,6 +317,26 @@ export class DocumentDefinition {
             return type;
         }
 
+        this.constVar.forEach(varDef => {
+            if(varDef.hasVar(name)){
+                type = varDef.getVarType(name);
+            }
+        });
+
+        if(type){
+            return type;
+        }
+
+        this.types.forEach(typeDef => {
+            if(typeDef.name === name){
+                type = typeDef.toType();
+            }
+        });
+
+        if(type){
+            return type;
+        }
+
         return "";
     }
 }
@@ -260,15 +346,61 @@ function nextWordOfLine(line : string, startCharacter : number) : number {
     let word = line.substring(startCharacter, endCharacter);
 
     while((word.match(regexStrictName) || word.match(regexStrictWhiteSpace))
-        && endCharacter < line.length){
+        && endCharacter <= line.length){
         endCharacter++;
         word = line.substring(startCharacter, endCharacter);
     }
 
-    if(endCharacter >= line.length){
+    if(endCharacter > line.length){
         return endCharacter;
     }
     return --endCharacter;
+}
+
+function typeFactory(document : vscode.TextDocument, range : vscode.Range) : TypeDefinition {
+    let text = document.getText(range);
+    let comments = text.matchAll(regexComment);
+    
+    for(let comment of comments){
+        text = text.replace(comment[0], "");
+    }
+
+    text = text.replace(regexBeginType, "");
+
+    let name : string = "";
+    let type : string = "";
+    let awaitingEndDefault : boolean = false;
+    let openBracket : number = 0;
+    let currChar = 0;
+
+    while(currChar < text.length){
+        let endChar = nextWordOfLine(text, currChar);
+        let word = text.substring(currChar, endChar);
+
+        if(word === '{'){
+            openBracket++;
+        }else if(word === '}'){
+            openBracket--;
+        }else{
+            if(openBracket <= 0){
+                if(word.match(regexName) && !awaitingEndDefault){
+                    name = word;
+                }else if(word === '='){
+                    awaitingEndDefault = true;
+                    currChar = endChar;
+                    continue;
+                }
+            }
+        }
+
+        if(awaitingEndDefault){
+            type += word;
+        }
+
+        currChar = endChar;
+    }
+
+    return new TypeDefinition(name, type, range);
 }
 
 function variableDefinitionFactory(document : vscode.TextDocument, range : vscode.Range) : VariableDefinition {
@@ -277,31 +409,105 @@ function variableDefinitionFactory(document : vscode.TextDocument, range : vscod
     let comments = text.matchAll(regexComment);
     
     for(let comment of comments){
-        text.replace(comment[0], "");
+        text = text.replace(comment[0], "");
     }
 
-    let varBlocks = text.split(";");
+    text = text.replace(regexBeginVar, "");
 
-    varBlocks.forEach(block => {
-        let tmpBlock = block.split(":");
+    let name : string[] = [];
+    let type : string = "";
+    let awaitingType : boolean = false;
+    let arrays : string[] = [];
+    let awaitingArray : boolean = false;
+    let defaultValue : string = "";
+    let awaitingEndDefault : boolean = false;
+    let openBracket : number = 0;
+    let currChar = 0;
 
-        if(tmpBlock.length === 2){
-            let tmpType = tmpBlock[1].match(regexName);
+    while(currChar < text.length){
+        let endChar = nextWordOfLine(text, currChar);
+        let word = text.substring(currChar, endChar);
 
-            if(tmpType){
-                let type = tmpType[0];
+        if(word === '{'){
+            openBracket++;
+        }else if(word === '}'){
+            openBracket--;
+        }else{
+            if(openBracket <= 0){
+                if(word.match(regexName) && awaitingType){
+                    type = word;
+                    awaitingType = false;
+                }else if(word.match(regexName) && awaitingArray){
+                    arrays.push(word);
+                    awaitingArray = false;
+                }else if(word.match(regexName)){
+                    name.push(word);
+                }else if(word === ':'){
+                    awaitingType = true;
+                }else if(word === '^'){
+                    awaitingArray = true;
+                }else if(word === '='){
+                    awaitingEndDefault = true;
+                    currChar = endChar;
+                    continue; //so equal isn't added to word
+                }else if(word === ';'){
+                    name.forEach(n => {
+                        variables.push({"name" : n, "type" : type, "arrays" : arrays, "defaultValue" : defaultValue});
+                    });
 
-                let varNames = tmpBlock[0].matchAll(regexName);
-                
-                for(let name of varNames){
-                    variables.push({"name" : name[0], "type" : type});
+                    name = [];
+                    type = "";
+                    awaitingType = false;
+                    arrays = [];
+                    awaitingArray = false;
+                    defaultValue = "";
+                    awaitingEndDefault = false;
                 }
             }
         }
+
+        if(awaitingEndDefault){
+            defaultValue += word;
+        }
+
+        currChar = endChar;
+    }
+
+    name.forEach(n => {
+        variables.push({"name" : n, "type" : type, "arrays" : arrays, "defaultValue" : defaultValue});
     });
 
     return new VariableDefinition(variables, range);
 }
+
+function getVarDefEnd(document : vscode.TextDocument, position : vscode.Position) : vscode.Position {
+    let openBracket : number = 0;
+    let currLine = position.line;
+    let currChar = position.character;
+    let end = false;
+
+    while(!end){
+        if(document.lineAt(currLine).text.charAt(currChar) === '{') {
+            openBracket++;
+        }else if(document.lineAt(currLine).text.charAt(currChar) === '}'){
+            openBracket--;
+        }
+
+        currChar++;
+        
+        if(currChar > document.lineAt(currLine).range.end.character){
+            if(!(openBracket > 0)){
+                end = true;
+                currChar--;
+            }else{
+                currLine++;
+                currChar = 0;
+            }
+        }
+    }
+    
+    return new vscode.Position(currLine, currChar);
+};
 
 function functionFactory(document : vscode.TextDocument, startPos : vscode.Position) : FunctionDefinition | null{
     let name : string | null = null;
@@ -350,7 +556,7 @@ function functionFactory(document : vscode.TextDocument, startPos : vscode.Posit
                     nbPar--;
 
                     if(nbPar === 0){
-                        let varDef = variableDefinitionFactory(document, new vscode.Range(beginPar, new vscode.Position(endLine, endChar)));
+                        let varDef = variableDefinitionFactory(document, new vscode.Range(beginPar, new vscode.Position(endLine, endChar-1)));
 
                         if(!isParamHere){
                             isParamHere = true;
@@ -403,6 +609,7 @@ function functionFactory(document : vscode.TextDocument, startPos : vscode.Posit
 export function documentFactory(document : vscode.TextDocument) : DocumentDefinition{
     let functions : FunctionDefinition[] = [];
     let constVar : VariableDefinition[] = [];
+    let types : TypeDefinition[] = [];
 
     let currLine = 0;
 
@@ -416,10 +623,18 @@ export function documentFactory(document : vscode.TextDocument) : DocumentDefini
 
                 currLine = tmp.range.end.line;
             }
+        }else if(text.match(regexBeginVar)){
+            let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
+            constVar.push(variableDefinitionFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
+            currLine = endPos.line;
+        }else if(text.match(regexBeginType)){
+            let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
+            types.push(typeFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
+            currLine = endPos.line;
         }
 
         currLine++;
     }
 
-    return new DocumentDefinition(document.fileName, functions, constVar);
+    return new DocumentDefinition(document.fileName, functions, constVar, types);
 }
