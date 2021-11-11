@@ -9,11 +9,11 @@ export class HeptagonHoverProvider implements vscode.HoverProvider {
     }
 
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
-        let range = document.getWordRangeAtPosition(position);
-        let docDef = this.mapDoc.get(document.fileName);
+        let name = document.fileName.split('/');
+        let docDef = this.mapDoc.get(name[name.length - 1].replace(".ept", ""));
 
-        if(range && docDef){
-            return new vscode.Hover(docDef.getTypeAny(document.getText(range), position));
+        if(docDef){
+            return new vscode.Hover(docDef.getTypeAny(document, position, this.mapDoc));
         }
         
         return null;

@@ -14,7 +14,7 @@ const regexBeginVar = new RegExp('(var|const)', 'g');
 //match being type
 const regexBeginType = new RegExp('type', 'g');
 //match any possible name for variable
-const regexName = new RegExp('[a-zA-Z0-9_]+', 'g'); 
+const regexName = new RegExp('[a-zA-Z0-9_.]+', 'g'); 
 //match only possible name
 const regexStrictName = new RegExp('^' + regexName.source + '$');
 //match any declaration of a variables with their types (in node or behind var)
@@ -24,7 +24,9 @@ const regexVarTypePar = new RegExp('\\((' + regexVarType.source + ')*\\)', 'g');
 //match any node
 const regexNode = new RegExp(regexBeginFunc.source + '[ \t]+' + regexName.source + regexVarTypePar.source + '[ \t]*returns[ \t]*' + regexVarTypePar.source, 'g');
 //match any declaration of var
-const regexVar = new RegExp('var[ \t]*(' + regexVarType.source + ')*', 'g'); 
+const regexVar = new RegExp('var[ \t]*(' + regexVarType.source + ')*', 'g');
+//match begin import
+const regexBeginImport = new RegExp('open', 'g');
 
 
 type Variable = {
@@ -32,6 +34,11 @@ type Variable = {
     type : string;
     arrays? : string[];
     defaultValue?: string;
+};
+
+type Import = {
+    name : string;
+    line : number;
 };
 
 export type ReprFunction = {
@@ -199,12 +206,14 @@ export class DocumentDefinition {
     functions : FunctionDefinition[];
     constVar : VariableDefinition[];
     types : TypeDefinition[];
+    imports : Import[];
 
-    constructor(name : string, functions : FunctionDefinition[], constVar : VariableDefinition[], types : TypeDefinition[]){
+    constructor(name : string, functions : FunctionDefinition[], constVar : VariableDefinition[], types : TypeDefinition[], imports : Import[]){
         this.name = name;
         this.functions = functions;
         this.constVar = constVar;
         this.types = types;
+        this.imports = imports;
     }
 
     update(document : vscode.TextDocument, changes : readonly vscode.TextDocumentContentChangeEvent[]){
@@ -281,6 +290,26 @@ export class DocumentDefinition {
                     i--;
                 }
             }
+            
+            for(let i = 0; i < this.imports.length; i++){
+                let imp = this.imports[i];
+
+                if(imp.line > end.line){
+                    imp.line = imp.line + lineChange;
+
+                    if(imp.line < highBoundary.line){
+                        highBoundary = new vscode.Position(imp.line, 0);
+                    }
+                }else if(imp.line < start.line){
+                    if(imp.line > lowBoundary.line){
+                        lowBoundary = new vscode.Position(imp.line, 0);
+                    }
+                }else{
+                    //we can't know exactly what happends so we will recalculate the function
+                    this.imports.splice(i);
+                    i--;
+                }
+            }
 
             let currLine = lowBoundary.line;
             while(currLine < highBoundary.line){
@@ -301,14 +330,67 @@ export class DocumentDefinition {
                     let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
                     this.types.push(typeFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
                     currLine = endPos.line;
+                }else if(text.match(regexBeginImport)){
+                    this.imports.push(importFactory(document.lineAt(currLine).text, currLine));
                 }
                 currLine++;
             }
         });
     }
 
-    getFunctionRepr(name : string) : ReprFunction{
+    getFunctionRepr(name : string, mapDocument : Map<string, DocumentDefinition>, parents? : string[]) : ReprFunction{
+        function getImportRepr(importName : string, documentName :string, mapDocument : Map<string, DocumentDefinition>) : ReprFunction {
+            let nameDoc = documentName.split('/');
+            let alreadyChecked = false;
+
+            if(parents){
+                if(parents.includes(nameDoc[nameDoc.length-1].replace(".ept", ""))){
+                    alreadyChecked = true;
+                }
+            }else{
+                parents = [];
+            }
+
+            if(!alreadyChecked){
+                parents.push(nameDoc[nameDoc.length-1].replace(".ept", ""));
+
+                let tmpDoc = mapDocument.get(importName);
+
+                if(tmpDoc){
+                    return tmpDoc.getFunctionRepr(name, mapDocument, parents);
+                }else{
+                    let tmpUri = vscode.workspace.findFiles('**/' + importName + '.{ept,epi}');
+                    
+                    tmpUri.then(value => {
+                        if(value[0]){
+                            let uri = value[0].path;
+
+                            vscode.workspace.openTextDocument(uri).then(value => {
+                                let docName = value.fileName.split('/');
+                                mapDocument.set(docName[docName.length-1].replace(".ept", ""), documentFactory(value));
+                            }, value => {console.log(value);});
+                        }else{
+                            console.log(value);
+                        }
+                    }, value => {console.log(value);});
+                }
+            }
+
+            return {"label" : "", parameters : []};
+        }
+
         let repr : ReprFunction = {label : "", parameters : []};
+
+        if(name.indexOf('.') !== -1){
+            let tmp = name.split('.');
+
+            //only know how to handle if tmp.length == 2
+            if(tmp.length === 2){
+                name = tmp[1];
+
+                return getImportRepr(tmp[0].charAt(0).toLowerCase() + tmp[0].substring(1), this.name, mapDocument);
+            }
+        }
 
         this.functions.forEach(funcDef => {
             if(funcDef.name === name){
@@ -317,11 +399,93 @@ export class DocumentDefinition {
             }
         });
 
+        if(repr.label === ""){
+            for (let i = 0; i < this.imports.length; i++) {
+                const imp = this.imports[i];
+                
+                let tmpRepr = getImportRepr(imp.name, this.name, mapDocument);
+
+                if(tmpRepr.label !== ""){
+                    repr = tmpRepr;
+                }
+            }
+        }
+
         return repr;
     }
 
-    getTypeAny(name : string, position : vscode.Position) : string {
+    getTypeAny(document : vscode.TextDocument | string, position : vscode.Position, mapDocument : Map<string, DocumentDefinition>, parents? : string[]) : string {
+        function getImportType(importName : string, documentName : string, mapDocument : Map<string, DocumentDefinition>) : string{
+            let nameDoc = documentName.split('/');
+            let alreadyChecked = false;
+
+            if(parents){
+                if(parents.includes(nameDoc[nameDoc.length-1].replace(".ept", ""))){
+                    alreadyChecked = true;
+                }
+            }else{
+                parents = [];
+            }
+
+            if(!alreadyChecked){
+                parents.push(nameDoc[nameDoc.length-1].replace(".ept", ""));
+
+                let tmpDoc = mapDocument.get(importName);
+
+                if(tmpDoc){
+                    return tmpDoc.getTypeAny(name, position, mapDocument, parents);
+                }else{
+                    let tmpUri = vscode.workspace.findFiles('**/' + importName + '.{ept,epi}');
+                    
+                    tmpUri.then(value => {
+                        if(value[0]){
+                            let uri = value[0].path;
+
+                            vscode.workspace.openTextDocument(uri).then(value => {
+                                let docName = value.fileName.split('/');
+                                mapDocument.set(docName[docName.length-1].replace(".ept", ""), documentFactory(value));
+                            }, value => {console.log(value);});
+                        }   
+                    }, value => {console.log(value);});
+                }
+            }
+
+            return "";
+        }
+        
+        let name : string;
+        if(typeof(document) === 'string'){
+            name = document; //document as already been parsed
+        }else{
+            let currChar = 0;
+            let endChar = nextWordOfLine(document.lineAt(position.line).text, currChar);
+
+            while(endChar < position.character){
+                currChar = endChar;
+                endChar = nextWordOfLine(document.lineAt(position.line).text, currChar);
+            }
+
+            name = document.lineAt(position.line).text.substring(currChar, endChar);
+        }
+        
+
         let type = "";
+
+        if(name.indexOf('.') !== -1){
+            let tmp = name.split('.');
+
+            //don't know how to handle others cases
+            if(tmp.length === 2){
+                name = tmp[1];
+                let impName = tmp[0].charAt(0).toLowerCase() + tmp[0].substring(1);
+
+                let tmpType = getImportType(impName, this.name, mapDocument);
+
+                if(tmpType){
+                    type = tmpType;
+                }
+            }
+        }
 
         //search first if its a function
         this.functions.forEach(funcDef => {
@@ -330,46 +494,65 @@ export class DocumentDefinition {
             }
         });
 
-        if(type){
-            return type;
+        if(!type){
+            //search if its a local var
+            this.functions.forEach(funcDef => {
+                if(funcDef.isIn(position) && funcDef.hasVar(name)){
+                    type = funcDef.getVarType(name);
+                }
+            });
         }
 
-        //search if its a local var
-        this.functions.forEach(funcDef => {
-            if(funcDef.isIn(position) && funcDef.hasVar(name)){
-                type = funcDef.getVarType(name);
+        if(!type){
+            this.constVar.forEach(varDef => {
+                if(varDef.hasVar(name)){
+                    type = varDef.getVarType(name);
+                }
+            });
+        }
+
+        if(!type){
+            this.types.forEach(typeDef => {
+                if(typeDef.name === name){
+                    type = typeDef.toType();
+                }
+            });
+        }
+
+        if(!type){
+            for (let i = 0; i < this.imports.length; i++) {
+                const imp = this.imports[i];
+                
+                let tmp = getImportType(imp.name, this.name, mapDocument);
+
+                if(tmp){
+                    type = tmp;
+                    break;
+                }
             }
-        });
-
-        if(type){
-            return type;
         }
+        
+        if(type.indexOf('.') !== -1){
+            let tmp = type.split('.');
 
-        this.constVar.forEach(varDef => {
-            if(varDef.hasVar(name)){
-                type = varDef.getVarType(name);
+            //don't know how to handle others cases
+            if(tmp.length === 2){
+                name = tmp[1];
+                let impName = tmp[0].charAt(0).toLowerCase() + tmp[0].substring(1);
+
+                let tmpType = getImportType(impName, this.name, mapDocument);
+
+                if(tmpType){
+                    type = tmpType;
+                }
             }
-        });
-
-        if(type){
-            return type;
         }
 
-        this.types.forEach(typeDef => {
-            if(typeDef.name === name){
-                type = typeDef.toType();
-            }
-        });
-
-        if(type){
-            return type;
-        }
-
-        return "";
+        return type;
     }
 }
 
-function nextWordOfLine(line : string, startCharacter : number) : number {
+export function nextWordOfLine(line : string, startCharacter : number) : number {
     let endCharacter = startCharacter+2;
     let word = line.substring(startCharacter, endCharacter);
 
@@ -383,6 +566,26 @@ function nextWordOfLine(line : string, startCharacter : number) : number {
         return endCharacter;
     }
     return --endCharacter;
+}
+
+function importFactory(text : string, line : number) : Import {
+    let comments = text.matchAll(regexComment);
+    
+    for(let comment of comments){
+        text = text.replace(comment[0], "");
+    }
+
+    text = text.replace(regexBeginImport, "");
+
+    let name = "";
+    let matchName = text.match(regexName);
+
+    if(matchName){
+        name = matchName[0];
+        name = name.charAt(0).toLowerCase() + name.substring(1);
+    }
+
+    return {"name" : name, "line" : line};
 }
 
 function typeFactory(document : vscode.TextDocument, range : vscode.Range) : TypeDefinition {
@@ -638,6 +841,7 @@ export function documentFactory(document : vscode.TextDocument) : DocumentDefini
     let functions : FunctionDefinition[] = [];
     let constVar : VariableDefinition[] = [];
     let types : TypeDefinition[] = [];
+    let imports : Import[] = [];
 
     let currLine = 0;
 
@@ -659,10 +863,12 @@ export function documentFactory(document : vscode.TextDocument) : DocumentDefini
             let endPos = getVarDefEnd(document, new vscode.Position(currLine, 0));
             types.push(typeFactory(document, new vscode.Range(new vscode.Position(currLine, 0), endPos)));
             currLine = endPos.line;
+        }else if(text.match(regexBeginImport)){
+            imports.push(importFactory(document.lineAt(currLine).text, currLine));
         }
 
         currLine++;
     }
 
-    return new DocumentDefinition(document.fileName, functions, constVar, types);
+    return new DocumentDefinition(document.fileName, functions, constVar, types, imports);
 }

@@ -17,7 +17,8 @@ export function activate(context: vscode.ExtensionContext) {
 	let textDocuments = vscode.workspace.textDocuments;
 
 	textDocuments.forEach(document => {
-		mapDocument.set(document.fileName, documentFactory(document));
+		let name = document.fileName.split('/');
+		mapDocument.set(name[name.length-1].replace(".ept", ""), documentFactory(document));
 	});
 
 	let docChange = vscode.workspace.onDidChangeTextDocument(function (document) {
@@ -29,12 +30,15 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	let openDoc = vscode.workspace.onDidOpenTextDocument(function (document){
-		mapDocument.set(document.fileName, documentFactory(document));
+		let name = document.fileName.split('/');
+		mapDocument.set(name[name.length-1].replace(".ept", ""), documentFactory(document));
 	});
 
 	let closeDoc = vscode.workspace.onDidCloseTextDocument(function (document){
-		mapDocument.delete(document.fileName);
+		let name = document.fileName.split('/');
+		mapDocument.delete(name[name.length-1].replace(".ept", ""));
 	});
+	
 
 	let hover = vscode.languages.registerHoverProvider('heptagon', new HeptagonHoverProvider(mapDocument));
 

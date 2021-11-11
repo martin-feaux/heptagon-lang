@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DocumentDefinition, ReprFunction } from './utils/readDocument';
+import { DocumentDefinition, nextWordOfLine, ReprFunction } from './utils/readDocument';
 
 
 class HeptagonInformation implements vscode.SignatureInformation {
@@ -74,27 +74,30 @@ export class HeptagonSignatureProvider implements vscode.SignatureHelpProvider{
         }
 
         if(line >= 0){
-            let range = document.getWordRangeAtPosition(new vscode.Position(line, character-1));
+            let currChar = 0;
+            let endChar = nextWordOfLine(document.lineAt(line).text, currChar);
 
-            if(range){
-                let name = document.lineAt(range.start.line).text.substring(range.start.character, range.end.character);
-
-                if(namePossible && !namePossible.includes(name)){
-                    if(character === 0){
-                        line--;
-                        if(line < 0){
-                            return "";
-                        }
-
-                        character = document.lineAt(line).range.end.character;
-                    }else{
-                        character--;
-                    }
-                    return this.findFunction(document, new vscode.Position(line, character), namePossible);
-                }
-
-                return name; 
+            while(endChar < character-1){
+                currChar = endChar;
+                endChar = nextWordOfLine(document.lineAt(line).text, currChar);
             }
+
+            let name = document.lineAt(line).text.substring(currChar, endChar);
+
+            if(namePossible && !namePossible.includes(name)){
+                if(character === 0){
+                    line--;
+                    if(line < 0){
+                        return "";
+                    }
+
+                    character = document.lineAt(line).range.end.character;
+                }else{
+                    character--;
+                }
+                return this.findFunction(document, new vscode.Position(line, character), namePossible);
+            }
+            return name; 
         }
         return "";
     }
@@ -113,19 +116,21 @@ export class HeptagonSignatureProvider implements vscode.SignatureHelpProvider{
             //opening new method signature, if none fund then there was no methode open
             let signInfo;
             try{
-                let docDef = this.mapDoc.get(document.fileName);
+                let fileName = document.fileName.split('/');
+                let docDef = this.mapDoc.get(fileName[fileName.length - 1].replace(".ept", ""));
                 if(docDef){
-                    signInfo = new HeptagonInformation(docDef.getFunctionRepr(name), position);
+                    signInfo = new HeptagonInformation(docDef.getFunctionRepr(name, this.mapDoc), position);
                     this.nodeSignature.set(name, signInfo);
                 }
             }catch(e){
-                //console.log(e);
+                console.log(e);
                 //was not initialize
             }
         }
 
         if(this.nodeSignature.size > 0){
             name = this.findFunction(document, position);
+
             let signInfo = this.nodeSignature.get(name);
 
             if(signInfo){
