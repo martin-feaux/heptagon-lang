@@ -18,28 +18,31 @@ A few snippets already exist and others will be added over the time.
 
 ### Hover
 
-Being implemented
+Implemented
 
 ### Methode signature helper
 
-Is currently implemented but will be reworked when hover is completed.
-No documentation support (function with comment on the line won't be suggested either).
+Implemented
 
 ### Going to implementation
 
-Comming with hover.
+Could be added
 
 ### Compile and run file
 
-Certainly comming later.
+only work with c
+
+### Debug
+
+start a dbg session on the compiled ept file but no direct link to the ept file.
 
 ## Extension Settings
 
-None yet but will be added if compile and run is added.
+check settings to set compilation options.
 
 ## Known Issues
 
-¯\\_(ツ)_/¯
+signature doesn't always open first time
 
 ## Release Notes
 
