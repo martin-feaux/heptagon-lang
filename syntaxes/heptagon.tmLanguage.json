@@ -55,7 +55,7 @@
 				{
 					"name": "keyword.other.heptagon",
 					"comment" : "other keyword",
-					"match": "\\b(node|fun|returns|let|tel|type|var|const|contract|assume|enforce|present|last|automaton|state|unless|until|do|end|default)\\b"
+					"match": "\\b(node|fun|returns|let|tel|type|var|const|contract|assume|enforce|present|last|automaton|state|unless|until|continue|do|end|default)\\b"
 				},
 				{
 					"name" : "keyword.control",
